@@ -240,7 +240,7 @@ def check_err(author, msg):
 def check_booling(author):
     if author in booling:
         bot.chat(f"Вааау, это же тот самый {author}, который полизал яички у sunoco1234! Ну и клоун же он)))")
-
+        flags["time"] += 5
 
 def new_game():
     time.sleep(1)
@@ -335,7 +335,7 @@ def chat(json, pos, *args):
                         else:
                             players += booling[i] + ', '
                     bot.chat(
-                        f"!А вы знали, что эти игроки: {players} клоуны?")
+                        f"!А вы знали, что эти игроки: {players} клоуны? Если встретите их, скажите им что они клоуны!")
                 else:
                     bot.chat("Круто поиграть с другими игроками вы можете у Sdbys#7743")
                 flags["time"] = int(datetime.datetime.today().strftime("%M")) + settings["time_for_game"]
