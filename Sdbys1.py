@@ -47,6 +47,7 @@ with open('settings.txt', encoding='utf-8') as f2:
                 "chat": msg1["chat"]
                 }
 ierarh = []
+booling = ["__brbc__", "inequity"]
 save = {"msg": ["", ""], "author": ["", ""]}
 for i in glob.glob(r"*.py"):
     ierarh.append(i.replace(".py", ""))
@@ -55,7 +56,7 @@ filter1 = ["§1", "§2", "§3", "§4", "§5", "§6", "§7", "§8", "§9", "§0",
            "[EMERALD]", "[DIAMOND]", "▸", "■", "|"]
 
 flags = {"time": int(datetime.datetime.today().strftime("%M")) + settings["time_for_game"], "new_game": False,
-         "in_game": False, "in_party": False, "party_msg": True, "Checking": False}
+         "in_game": False, "in_party": False, "party_msg": True, "Checking": False, "is_walking": False}
 print(f"Бот {myname} успешно запущен!")
 
 
@@ -185,6 +186,7 @@ def check_party(author, message):
                     try:
                         znach = int(message.split('add time')[1])
                         flags["time"] += znach
+                        bot.chat(f'/party chat Добавил {znach} минут')
                     except:
                         bot.chat('/party chat Ошибка! Проверьте правильность команды: add time {число (минуты)}')
                     return
@@ -235,6 +237,11 @@ def check_err(author, msg):
     go_to(0, 52, 40)
 
 
+def check_booling(author):
+    if author in booling:
+        bot.chat(f"Вааау, это же тот самый {author}, который полизал яички у sunoco1234! Ну и клоун же он)))")
+
+
 def new_game():
     time.sleep(1)
     bot.chat("/leave")
@@ -246,8 +253,9 @@ def new_game():
 
 
 def go_to(x, y, z):
-    if flags["in_game"]:
+    if flags["in_game"] or flags["is_walking"]:
         return
+    flags["is_walking"] = True
     possition = bot.entity.position
     p = bot.pathfinder
     v = Vec3(x, y, z)
@@ -255,6 +263,7 @@ def go_to(x, y, z):
     t = walkTime(v, possition)
     time.sleep(t + 2)
     p.stop()
+    flags["is_walking"] = False
 
 
 @Once(bot, 'login')
@@ -300,14 +309,15 @@ def chat(json, pos, *args):
         save["msg"].append(message)
         save["author"].append(author)
         if settings["chat"] == "True":
-            print(author, "-->", message)
+            print(f"[{datetime.datetime.today().strftime('%H:%M')}] {author}: {message}")
         if author == myname:
             return
+        check_booling(author)
         is_reklam(message, author)
         is_mod(message, author)
         is_mat(message, author)
         check_party(author, message)
-        #check_err(author, message)
+        check_err(author, message)
         if check_leave(message, author):
             print(f"[LOG] - Выхожу из игры")
             new_game()
@@ -317,7 +327,15 @@ def chat(json, pos, *args):
         if "System" in author:
             if "КРОВАТНЫЕ ВОЙНЫ" in message:
                 flags["in_game"] = True
-                bot.chat(
-                    "!Пожалуйста, не используйте читерские моды или читы в играх!")
+                if len(booling) > 0:
+                    players=''
+                    for i in range(len(booling)):
+                        if i == len(booling) - 1:
+                            players += booling[i]
+                        else:
+                            players += booling[i] + ', '
+                    bot.chat(
+                        f"!А вы знали, что эти игроки: {players} клоуны?")
+                else:
+                    bot.chat("Круто поиграть с другими игроками вы можете у Sdbys#7743")
                 flags["time"] = int(datetime.datetime.today().strftime("%M")) + settings["time_for_game"]
-                rassilka()
