@@ -4,6 +4,10 @@ import os
 import string
 import random
 
+import discord
+from discord.ext import commands
+import asyncio
+
 from javascript import On, Once
 
 from help import *
@@ -46,18 +50,109 @@ with open('settings.txt', encoding='utf-8') as f2:
                 "my_reklam": msg1["my_reklam"],
                 "chat": msg1["chat"]
                 }
+
+intents = discord.Intents.all()
+bot1 = commands.Bot(command_prefix=".", intents=intents)
+token = "OTUzNjY0NDI5NDMyNjM1NTE0.YjH3Ng.yCLq-yPhaPeTLZFaiOOV-h_SboE"
+bot1.remove_command('help')
+
+oldmsg = ["", ""]
+
 ierarh = []
-booling = ["__brbc__", "inequity"]
 save = {"msg": ["", ""], "author": ["", ""]}
-for i in glob.glob(r"*.py"):
-    ierarh.append(i.replace(".py", ""))
+for name in glob.glob(r"*.py"):
+    ierarh.append(name.replace(".py", ""))
 filter1 = ["§1", "§2", "§3", "§4", "§5", "§6", "§7", "§8", "§9", "§0", "§a", "§c", "§e", "§b", "§d", "§f", "§k", "§m",
            "§o", "§l", "§n", "§r", "§F", "→", "[Всем]", "[MAGMA]" "[LEGEND]", "[Игрок]", "[GOLD]",
            "[EMERALD]", "[DIAMOND]", "▸", "■", "|"]
 
 flags = {"time": int(datetime.datetime.today().strftime("%M")) + settings["time_for_game"], "new_game": False,
-         "in_game": False, "in_party": False, "party_msg": True, "Checking": False, "is_walking": False}
+         "in_game": False, "in_party": False, "party_msg": True, "Checking": False, "is_walking": False,
+         "math_start": False, "answ": 0, "math_time": int(datetime.datetime.today().strftime("%M")), "count": 2,
+         "send": True}
 print(f"Бот {myname} успешно запущен!")
+
+
+async def chat1(ctx):
+    while flags["send"]:
+        while len(save["msg"]) != flags["count"]:
+            aut = save["author"][flags["count"]]
+            msg = save["msg"][flags["count"]]
+            if "NewGame" in aut:
+                embed = discord.Embed(title=f"Захожу в новую игру!", colour=discord.Colour.red())
+
+                await ctx.send(embed=embed)
+            elif "System" not in aut and "BedWars" not in aut and "Party" not in aut and "20221" not in msg and "Lobby"\
+                    not in aut and "[*]" not in aut:
+                embed = discord.Embed(title=f"Бот: {myname}", colour=discord.Colour.green())
+                embed.add_field(name=f"**{aut}**:", value=msg.lstrip())
+                await ctx.send(embed=embed)
+            flags["count"] += 1
+        await asyncio.sleep(0.3)
+
+
+@bot1.command(pass_conext=True)
+async def start(ctx):
+    await ctx.send("Ok")
+    flags["count"] = len(save["msg"])
+    flags["send"] = True
+    asyncio.create_task(chat1(ctx))
+
+
+@bot1.command(pass_conext=True)
+async def stop(ctx):
+    await ctx.send("Ok")
+    flags["send"] = False
+
+
+@bot1.command(pass_conext=True)
+async def say(ctx, *msg1):
+    if not flags["send"]:
+        return
+    string1 = ""
+    for i in msg1:
+        string1 += i + ' '
+    bot.chat(string1)
+
+
+@bot1.command(pass_conext=True)
+async def sett(ctx, botname, type, command, znach):
+    if botname != myname:
+        return
+    if type == "flags":
+        if command in flags:
+            if znach == "True" or znach == "False":
+                flags[command] = znach
+                embed = discord.Embed(title=f'✅ Успешно изменил значение {command} на {znach}!',
+                                      colour=discord.Colour.green())
+                await ctx.send(embed=embed)
+            else:
+                embed = discord.Embed(title=f'❌ Ошибка! Введено неверное значение настройки!',
+                                      colour=discord.Colour.red())
+                await ctx.send(embed=embed)
+        else:
+            embed = discord.Embed(title=f'❌ Ошибка! Данной настройки не существует!',
+                                  colour=discord.Colour.red())
+            await ctx.send(embed=embed)
+    elif type == "settings":
+        if command in settings:
+            if znach == "True" or znach == "False":
+                settings[command] = znach
+                embed = discord.Embed(title=f'✅ Успешно изменил значение {command} на {znach}!',
+                                      colour=discord.Colour.green())
+                await ctx.send(embed=embed)
+            else:
+                embed = discord.Embed(title=f'❌ Ошибка! Введено неверное значение настройки!',
+                                      colour=discord.Colour.red())
+                await ctx.send(embed=embed)
+        else:
+            embed = discord.Embed(title=f'❌ Ошибка! Данной настройки не существует!',
+                                  colour=discord.Colour.red())
+            await ctx.send(embed=embed)
+    else:
+        embed = discord.Embed(title=f'❌ Ошибка! Неверный тип настройки!',
+                              colour=discord.Colour.red())
+        await ctx.send(embed=embed)
 
 
 def findAuthor(msg):
@@ -68,12 +163,12 @@ def findAuthor(msg):
         messagenew = messagenew.replace(i, '')
     try:
         author, message = messagenew.lstrip().split(' ', 1)
-        if is_nick(author):
+        if is_nick(author) or author in settings["friends"]:
             author = "System"
             message = messagenew.lstrip()
         return author, message
     except:
-        return myname, myname
+        return myname, "20221"
 
 
 def is_nick(text):
@@ -84,8 +179,8 @@ def is_reklam(msg, author):
     if not flags["in_game"]:
         return
     if settings["reklam"] == "True":
-        for i in settings["reklam_msg"]:
-            if i in msg.lower():
+        for rekmsg in settings["reklam_msg"]:
+            if rekmsg in msg.lower():
                 if settings["reklam_random"] == "True":
                     bot.chat(f'!{author}! {random.choice(settings["reklam_answer"])}')
                 else:
@@ -158,8 +253,8 @@ def rassilka():
     if settings["my"] == "True":
         if settings["my_random"] == "True":
             for i in random.choices(settings["my_reklam"])[0]:
-                time.sleep(7)
-                bot.chat(f"!{i}")
+                time.sleep(5)
+                bot.chat(f"!Цитата рандомного чела: {i}")
 
 
 def check_party(author, message):
@@ -186,7 +281,6 @@ def check_party(author, message):
                     try:
                         znach = int(message.split('add time')[1])
                         flags["time"] += znach
-                        bot.chat(f'/party chat Добавил {znach} минут')
                     except:
                         bot.chat('/party chat Ошибка! Проверьте правильность команды: add time {число (минуты)}')
                     return
@@ -207,7 +301,7 @@ def check_party(author, message):
                     except:
                         bot.chat('/party chat Ошибка! Проверьте правильность команды: set {настройка} {значение}')
                 if "portal" in message:
-                    bot.chat("/party chat Понял, захожу в портал")
+                    bot.chat(f'/party chat Понял, захожу в портал. {flags["is_walking"]} {flags["in_game"]}')
                     go_to(0, 52, 40)
                 if "new game" in message:
                     bot.chat("/party chat Понял, захожу в новую игру!")
@@ -217,53 +311,92 @@ def check_party(author, message):
 def check_err(author, msg):
     if flags["in_game"] or flags["Checking"] or flags["in_party"]:
         return
-    if "Извините, но вас кикнул" in msg and "System" in author:
+    flags["Checking"] = True
+    if "Извините, но вас кикнули" in msg and "System" in author:
         flags["in_game"] = False
+        flags["new_game"] = False
         return
     if "Ты перемещен в лобби" in msg and "System" in author:
         time.sleep(1)
         go_to(0, 52, 40)
         return
+    if "подключился к игре" in msg:
+        players = int(msg.split("/")[1])
+        if players < 24:
+            new_game()
+            print(f"[LOG] В этой игре слишком мало игроков ({players}). Перезахожу!")
+            return
     lenth = len(save["author"])
     if lenth >= 20:
-        for i in range(lenth-21, lenth-1):
+        for i in range(lenth - 21, lenth - 1):
             if "BedWars" in save["author"][i]:
                 return
     else:
         return
     print("[LOG] - Судя по всему, бот не смог зайти в портал! 2 попытка!")
     flags["new_game"] = False
-    flags["Checking"] = True
     go_to(0, 52, 40)
 
 
-def check_booling(author):
-    if author in booling:
-        bot.chat(f"Вааау, это же тот самый {author}, который полизал яички у sunoco1234! Ну и клоун же он)))")
-        flags["time"] += 5
-
 def new_game():
     time.sleep(1)
-    bot.chat("/leave")
     flags["time"] = int(datetime.datetime.today().strftime("%M")) + settings["time_for_game"]
     flags["new_game"] = True
     flags["in_game"] = False
     flags["party_msg"] = True
     flags["Checking"] = False
+    flags["math_start"] = False
+    bot.chat("/leave")
 
 
-def go_to(x, y, z):
+def go_to(x1, y1, z1):
     if flags["in_game"] or flags["is_walking"]:
         return
     flags["is_walking"] = True
     possition = bot.entity.position
     p = bot.pathfinder
-    v = Vec3(x, y, z)
-    p.setGoal(pathfinder.goals.GoalNear(v.x, v.y, v.z))
+    v = Vec3(x1, y1, z1)
     t = walkTime(v, possition)
-    time.sleep(t + 2)
+    p.setGoal(pathfinder.goals.GoalNear(v.x, v.y, v.z))
+    time.sleep(t)
     p.stop()
     flags["is_walking"] = False
+
+
+def start_math():
+    type1 = random.randint(1, 4)
+    if type1 == 1:
+        time.sleep(5)
+        a = random.randint(1, 1000)
+        b = random.randint(1, 1000)
+        flags["answ"] = [a + b, 1]
+        flags["math_start"] = True
+        primer = f"!Решите пример и получите exp! {a} + {b} = ? Напишите только число!"
+        bot.chat(primer)
+    elif type1 == 2:
+        time.sleep(5)
+        a = random.randint(1, 1000)
+        b = random.randint(1, 1000)
+        flags["answ"] = [a - b, 2]
+        flags["math_start"] = True
+        primer = f"!Решите пример и получите exp! {a} - {b} = ? Напишите только число!"
+        bot.chat(primer)
+    elif type1 == 3:
+        time.sleep(5)
+        a = random.randint(1, 100)
+        b = random.randint(1, 100)
+        flags["answ"] = [a * b, 3]
+        flags["math_start"] = True
+        primer = f"!Решите пример и получите exp! {a} * {b} = ? Напишите только число!"
+        bot.chat(primer)
+    elif type1 == 4:
+        time.sleep(5)
+        a = random.randint(1, 50)
+        b = random.randint(1, 50)
+        flags["answ"] = [a ** b, 4]
+        flags["math_start"] = True
+        primer = f"!Решите пример и получите exp! {a} ^ {b} = ? Напишите только число!"
+        bot.chat(primer)
 
 
 @Once(bot, 'login')
@@ -276,17 +409,14 @@ def move_to_portal(*args):
 
 
 @On(bot, 'kicked')
-def kick(reason, *args):
+def kick(_, *args):
     print(f'[LOG] - ОШИБКА! Бота кикнуло! Причина: {args[0]}')
 
 
 @On(bot, 'login')
-def move_to_portal(*args):
+def move_to_portal(_):
     if flags["new_game"]:
-        print("[LOG] - Совершаю рассылку!")
-        rassilka()
-        print("[LOG] - Завершил рассылку!")
-        time.sleep(2)
+        time.sleep(1)
         print("[LOG] - Захожу в катку!")
         go_to(0, 52, 40)
         flags["new_game"] = False
@@ -302,7 +432,7 @@ def move_to_portal(*args):
 
 
 @On(bot, 'message')
-def chat(json, pos, *args):
+def chat(_, pos, *args):
     messages = pos['extra']
     if messages is not None:
         author, message = findAuthor(messages)
@@ -312,7 +442,6 @@ def chat(json, pos, *args):
             print(f"[{datetime.datetime.today().strftime('%H:%M')}] {author}: {message}")
         if author == myname:
             return
-        check_booling(author)
         is_reklam(message, author)
         is_mod(message, author)
         is_mat(message, author)
@@ -320,6 +449,8 @@ def chat(json, pos, *args):
         check_err(author, message)
         if check_leave(message, author):
             print(f"[LOG] - Выхожу из игры")
+            save["author"].append("NewGame")
+            save["msg"].append("NewGame")
             new_game()
         if author in settings["friends"] and settings["friends"][author] == "True":
             bot.chat(f"!Ку, {author}!")
@@ -327,15 +458,31 @@ def chat(json, pos, *args):
         if "System" in author:
             if "КРОВАТНЫЕ ВОЙНЫ" in message:
                 flags["in_game"] = True
-                if len(booling) > 0:
-                    players=''
-                    for i in range(len(booling)):
-                        if i == len(booling) - 1:
-                            players += booling[i]
-                        else:
-                            players += booling[i] + ', '
-                    bot.chat(
-                        f"!А вы знали, что эти игроки: {players} клоуны? Если встретите их, скажите им что они клоуны!")
-                else:
-                    bot.chat("Круто поиграть с другими игроками вы можете у Sdbys#7743")
+                bot.chat(
+                    "!Пожалуйста, не используйте читерские моды или читы в играх!")
                 flags["time"] = int(datetime.datetime.today().strftime("%M")) + settings["time_for_game"]
+                flags["math_time"] = int(datetime.datetime.today().strftime("%M")) + 2
+                rassilka()
+        if flags["math_start"]:
+            try:
+                if flags["answ"][0] == int(message):
+                    with open('score.txt', encoding='utf-8') as f2:
+                        score = json.load(f2)
+                    if author not in score:
+                        score[author] = flags["answ"][1]
+                    else:
+                        score[author] += flags["answ"][1]
+                    bot.chat(f'!Верно, {author}! Ты получаешь {flags["answ"][1]} exp!')
+                    flags["time"] += 4
+                    flags["math_time"] = int(datetime.datetime.today().strftime("%M")) + 2
+                    flags["math_start"] = False
+                    with open('score.txt', 'w+', encoding='utf-8') as f1:
+                        json.dump(score, f1)
+            except:
+                pass
+        else:
+            if int(datetime.datetime.today().strftime("%M")) == flags["math_time"] and flags["in_game"]:
+                start_math()
+
+
+bot1.run(token)
