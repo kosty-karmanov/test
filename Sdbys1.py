@@ -53,7 +53,7 @@ with open('settings.txt', encoding='utf-8') as f2:
 
 intents = discord.Intents.all()
 bot1 = commands.Bot(command_prefix=".", intents=intents)
-token = "OTUzNjY0NDI5NDMyNjM1NTE0.YjH3Ng.yCLq-yPhaPeTLZFaiOOV-h_SboE"
+token="OTUzNjY0NDI5NDMyNjM1NTE0.G_CFn7.qOuiGsGyCvv47RiT0An_fCoErkmTJpKdDNM8vc"
 bot1.remove_command('help')
 
 oldmsg = ["", ""]
