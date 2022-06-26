@@ -10,6 +10,7 @@ import asyncio
 
 from javascript import On, Once
 
+from settings import *
 from help import *
 
 myname = str(os.path.basename(__file__)).replace(".py", "")
@@ -27,29 +28,6 @@ bot.pathfinder.setMovements(movements)
 
 with open('bad.txt', encoding='utf-8') as f2:
     bad = json.load(f2)
-with open('settings.txt', encoding='utf-8') as f2:
-    msg1 = json.load(f2)
-    settings = {"mat": msg1['mat'],
-                "mat_random": msg1['mat'],
-                "mat_answer": msg1['mat_answer'],
-                "mat_time": msg1["mat_time"],
-                "reklam": msg1["reklam"],
-                "reklam_random": msg1["reklam_random"],
-                "reklam_msg": msg1["reklam_msg"],
-                "reklam_answer": msg1["reklam_answer"],
-                "reklam_time": msg1["reklam_time"],
-                "mod": msg1["mod"],
-                "mod_random": msg1["mod_random"],
-                "mod_answer": msg1["mod_answer"],
-                "mod_time": msg1["mod_time"],
-                "time_for_game": msg1["time_for_game"],
-                "death": ["бездну", "убит"],
-                "friends": msg1["friends"],
-                "my": msg1["my"],
-                "my_random": msg1["my_random"],
-                "my_reklam": msg1["my_reklam"],
-                "chat": msg1["chat"]
-                }
 
 oldmsg = ["", ""]
 
@@ -76,12 +54,17 @@ def findAuthor(msg):
         messagenew = messagenew.replace(i, '')
     try:
         author, message = messagenew.lstrip().split(' ', 1)
-        if is_nick(author) or author in settings["friends"]:
+        if is_nick(author):
             author = "System"
             message = messagenew.lstrip()
         return author, message
     except:
-        return myname, "20221"
+        return "System", myname
+
+
+def add_to_save(author, msg):
+    save["author"].append(author)
+    save["msg"].append(msg)
 
 
 def is_nick(text):
@@ -153,10 +136,20 @@ def check_bots(msg):
 
 
 def check_leave(message, author):
-    if (myname in message and is_death(message, author)) or \
-            (flags["time"] <= int(datetime.datetime.today().strftime("%M"))) or \
-            (check_bots(message)) or \
-            ("Вы присоединились к игре как наблюдатель" in message): return True
+    if flags["in_party"]:
+        return False
+    if myname in message and is_death(message, author):
+        add_to_save("[LOG]", "Выхожу из игры, меня убили!")
+        return True
+    if flags["time"] <= int(datetime.datetime.today().strftime("%M")):
+        add_to_save("[LOG]", "Выхожу из игры, время ожидания вышло!!")
+        return True
+    if check_bots(message):
+        add_to_save("[LOG]", "Выхожу из игры, в катке мой собрат!")
+        return True
+    if "Вы присоединились к игре как наблюдатель" in message:
+        add_to_save("[LOG]", "Выхожу из игры, я зашел как наблюдатель!")
+        return True
     return False
 
 
@@ -175,7 +168,9 @@ def check_party(author, message):
         flags["in_party"] = True
     if "Party" in author:
         if "Пати расформировано" in message:
+            add_to_save("[LOG]", "Ураа! Пати расформировано! Я свободен!")
             flags["in_party"] = False
+            new_game()
             return
         if "Вы не можете зайти в игру в одиночку" in message and flags["party_msg"]:
             flags["party_msg"] = False
@@ -219,12 +214,29 @@ def check_party(author, message):
                 if "new game" in message:
                     bot.chat("/party chat Понял, захожу в новую игру!")
                     new_game()
+                if "come" in message:
+                    player = bot.players[fr]
+                    if not player:
+                        bot.chat(f"/pc {fr}, я не вижу вас!")
+                        return
+                    target = player.entity
+                    if not target:
+                        bot.chat(f"/pc {fr}, я не вижу вас!")
+                        return
+                    pos = target.position
+                    bot.pathfinder.setMovements(movements)
+                    bot.chat(f"/pc {fr}, понял, иду к вам!")
+                    bot.pathfinder.setGoal(pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, 1))
 
 
 def check_err(author, msg):
     if flags["in_game"] or flags["Checking"] or flags["in_party"]:
         return
     flags["Checking"] = True
+    if "Вас переместил к себе создатель пати" in msg:
+        flags["in_party"] = True
+        flags["in_game"] = True
+        flags["new_game"] = False
     if "Извините, но вас кикнули" in msg and "System" in author:
         flags["in_game"] = False
         flags["new_game"] = False
@@ -349,8 +361,7 @@ def chat(_, pos, *args):
     messages = pos['extra']
     if messages is not None:
         author, message = findAuthor(messages)
-        save["msg"].append(message)
-        save["author"].append(author)
+        add_to_save(author, message)
         if settings["chat"] == "True":
             print(f"[{datetime.datetime.today().strftime('%H:%M')}] {author}: {message}")
         if author == myname:
@@ -362,14 +373,13 @@ def chat(_, pos, *args):
         check_err(author, message)
         if check_leave(message, author):
             print(f"[LOG] - Выхожу из игры")
-            save["author"].append("NewGame")
-            save["msg"].append("NewGame")
             new_game()
         if author in settings["friends"] and settings["friends"][author] == "True":
             bot.chat(f"!Ку, {author}!")
             settings["friends"][author] = "False"
         if "System" in author:
             if "КРОВАТНЫЕ ВОЙНЫ" in message:
+                add_to_save("[LOG]", "Зашел в новую игру!")
                 flags["in_game"] = True
                 bot.chat(
                     "!Пожалуйста, не используйте читерские моды или читы в играх!")
