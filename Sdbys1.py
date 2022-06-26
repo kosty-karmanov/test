@@ -51,11 +51,6 @@ with open('settings.txt', encoding='utf-8') as f2:
                 "chat": msg1["chat"]
                 }
 
-intents = discord.Intents.all()
-bot1 = commands.Bot(command_prefix=".", intents=intents)
-token="OTUzNjY0NDI5NDMyNjM1NTE0.G_CFn7.qOuiGsGyCvv47RiT0An_fCoErkmTJpKdDNM8vc"
-bot1.remove_command('help')
-
 oldmsg = ["", ""]
 
 ierarh = []
@@ -71,88 +66,6 @@ flags = {"time": int(datetime.datetime.today().strftime("%M")) + settings["time_
          "math_start": False, "answ": 0, "math_time": int(datetime.datetime.today().strftime("%M")), "count": 2,
          "send": True}
 print(f"Бот {myname} успешно запущен!")
-
-
-async def chat1(ctx):
-    while flags["send"]:
-        while len(save["msg"]) != flags["count"]:
-            aut = save["author"][flags["count"]]
-            msg = save["msg"][flags["count"]]
-            if "NewGame" in aut:
-                embed = discord.Embed(title=f"Захожу в новую игру!", colour=discord.Colour.red())
-
-                await ctx.send(embed=embed)
-            elif "System" not in aut and "BedWars" not in aut and "Party" not in aut and "20221" not in msg and "Lobby"\
-                    not in aut and "[*]" not in aut:
-                embed = discord.Embed(title=f"Бот: {myname}", colour=discord.Colour.green())
-                embed.add_field(name=f"**{aut}**:", value=msg.lstrip())
-                await ctx.send(embed=embed)
-            flags["count"] += 1
-        await asyncio.sleep(0.3)
-
-
-@bot1.command(pass_conext=True)
-async def start(ctx):
-    await ctx.send("Ok")
-    flags["count"] = len(save["msg"])
-    flags["send"] = True
-    asyncio.create_task(chat1(ctx))
-
-
-@bot1.command(pass_conext=True)
-async def stop(ctx):
-    await ctx.send("Ok")
-    flags["send"] = False
-
-
-@bot1.command(pass_conext=True)
-async def say(ctx, *msg1):
-    if not flags["send"]:
-        return
-    string1 = ""
-    for i in msg1:
-        string1 += i + ' '
-    bot.chat(string1)
-
-
-@bot1.command(pass_conext=True)
-async def sett(ctx, botname, type, command, znach):
-    if botname != myname:
-        return
-    if type == "flags":
-        if command in flags:
-            if znach == "True" or znach == "False":
-                flags[command] = znach
-                embed = discord.Embed(title=f'✅ Успешно изменил значение {command} на {znach}!',
-                                      colour=discord.Colour.green())
-                await ctx.send(embed=embed)
-            else:
-                embed = discord.Embed(title=f'❌ Ошибка! Введено неверное значение настройки!',
-                                      colour=discord.Colour.red())
-                await ctx.send(embed=embed)
-        else:
-            embed = discord.Embed(title=f'❌ Ошибка! Данной настройки не существует!',
-                                  colour=discord.Colour.red())
-            await ctx.send(embed=embed)
-    elif type == "settings":
-        if command in settings:
-            if znach == "True" or znach == "False":
-                settings[command] = znach
-                embed = discord.Embed(title=f'✅ Успешно изменил значение {command} на {znach}!',
-                                      colour=discord.Colour.green())
-                await ctx.send(embed=embed)
-            else:
-                embed = discord.Embed(title=f'❌ Ошибка! Введено неверное значение настройки!',
-                                      colour=discord.Colour.red())
-                await ctx.send(embed=embed)
-        else:
-            embed = discord.Embed(title=f'❌ Ошибка! Данной настройки не существует!',
-                                  colour=discord.Colour.red())
-            await ctx.send(embed=embed)
-    else:
-        embed = discord.Embed(title=f'❌ Ошибка! Неверный тип настройки!',
-                              colour=discord.Colour.red())
-        await ctx.send(embed=embed)
 
 
 def findAuthor(msg):
@@ -483,6 +396,3 @@ def chat(_, pos, *args):
         else:
             if int(datetime.datetime.today().strftime("%M")) == flags["math_time"] and flags["in_game"]:
                 start_math()
-
-
-bot1.run(token)
